@@ -134,6 +134,7 @@ function! s:set_find_char(args, cmd, a) "{{{2
 endfunction
 
 function! s:next_char(count, char, f, fwd) "{{{2
+  silent! call repeat#set("\<Plug>fanfingtastic_;")
   let afwd = s:fwd[a:fwd]
   if afwd < 0 && !exists('s:ff')
     return [0,0]
@@ -183,6 +184,8 @@ function! s:next_char(count, char, f, fwd) "{{{2
   return s:next_char_pos(ccount, a:f =~? 'f', fwd)
 endfunction
 
+" dot repeat doesn't work in visual mode, since vim-repeat only works in
+" normal mode. Remapping ';' to '.' is kind of complicated for me.
 function! s:visual_next_char(count, char, f, fwd) "{{{2
   let pos1 = s:get_visual_pos()
   let pos2 = getpos("'<") == pos1 ? getpos("'>") : getpos("'<")
@@ -201,19 +204,9 @@ function! s:visual_next_char(count, char, f, fwd) "{{{2
   else
     exec 'normal! `[' . vmode . '`]'
   endif
+
 endfunction
 
-function! RepeatSet(buf) "{{{2
-" guns' awesome workaround for ./repeat issue
-" https://github.com/tpope/vim-repeat/issues/8
-  call repeat#set(a:buf)
-  augroup repeat_tick
-    autocmd!
-    autocmd CursorMoved <buffer>
-          \ let g:repeat_tick = b:changedtick
-          \ | autocmd! repeat_tick
-  augroup END
-endfunction
 
 function! s:operator_next_char(count, char, f, fwd) "{{{2
   let curpos = getpos('.')
@@ -231,9 +224,9 @@ function! s:operator_next_char(count, char, f, fwd) "{{{2
   " No need to give a char to jump to with ";" and ",".
   let sufix = a:fwd =~ '[,;]' ? '' : s:fchar
   " Use the dot register to repeat with the c-hange operator.
-  let sufix .= v:operator ==# 'c' ? "\<C-R>.\<Esc>" : ""
+  " let sufix .= v:operator ==# 'c' ? "\<C-R>.\<Esc>" : ""
   let expr = printf("%s\<Plug>fanfingtastic_%s%s", v:operator, a:fwd, sufix)
-  silent! call RepeatSet(expr)
+  silent! call repeat#set(expr)
   normal! `[v`]
 endfunction
 
@@ -286,6 +279,7 @@ for [mode, fn_prefix] in [['n', ''], ['x', 'visual_'], ['o', 'operator_']]
   endfor
 endfor
 unlet mode cmd fn_prefix arg1 arg2
+
 
 function! FanfingTasticEnable(...)
   let g:fing_enabled = a:0 ? a:1 : 1
